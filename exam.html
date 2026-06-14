@@ -45,6 +45,10 @@
   .empty{text-align:center;color:var(--muted);padding:40px 0}
   .hint{color:var(--muted);font-size:12px;margin-top:4px}
   kbd{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .topicwrap{margin-top:12px}
+  .topic{border:1px solid var(--line);background:var(--card);color:var(--ink);
+    padding:5px 11px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none}
+  .topic:hover,.topic.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
   .bar .count{margin-top:0}
   .filttoggle{border:1px solid var(--line);background:var(--card);color:var(--muted);
@@ -62,10 +66,13 @@
   </div>
   <div class="bar">
     <span class="count" id="count"></span>
-    <button id="filttoggle" class="filttoggle" aria-expanded="false" aria-controls="filters">☰ Filters</button>
+    <button id="filttoggle" class="filttoggle" aria-expanded="false" aria-controls="filters">☰ Filters &amp; topics</button>
   </div>
   <div class="filters" id="filters" hidden>
     <div class="chips" id="chips"></div>
+    <div class="topicwrap">
+      <div class="chips" id="topics"></div>
+    </div>
   </div>
 </header>
 <main>
@@ -233,14 +240,41 @@ chipsEl.innerHTML=[[0,'All'],[1,SCEN[1]],[2,SCEN[2]],[3,SCEN[3]],[4,SCEN[4]]]
 chipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
   scen=+c.dataset.s;[...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===scen));render()});
 
+// One-click topic search: click a chip to run a keyword search across all questions.
+const TOPICS=[
+  ['Escalation','escalate'],['Tool descriptions','tool descriptions'],['Tool selection','tool selection'],
+  ['Multi-concern','multi-concern'],['Composite tools','composite'],['stop_reason','stop_reason'],
+  ['Verifying identity','verified customer'],['Batches API','batch'],['context: fork','fork'],
+  ['Plan mode','plan mode'],['Skills','skill'],['CLAUDE.md','claude.md'],['MCP server','mcp'],
+  ['.claude/rules','rules'],['Few-shot examples','few-shot'],['Severity ratings','severity'],
+  ['False positives','false positive'],['Inline PR comments','inline'],['Headless / -p','pipeline'],
+  ['Coordinator','coordinator'],['Synthesis agent','synthesis'],['Task decomposition','decompos'],
+  ['Timeout / errors','timeout'],['Conflicting data','conflict'],['Lost in the middle','middle']
+];
+const topicsEl=document.getElementById('topics');
+topicsEl.innerHTML=TOPICS.map(([l,q])=>`<span class="topic" data-q="${q}">${l}</span>`).join('');
+topicsEl.addEventListener('click',e=>{
+  const c=e.target.closest('.topic');if(!c)return;
+  const q=c.dataset.q, already=input.value.trim().toLowerCase()===q.toLowerCase();
+  scen=0;
+  [...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===0));
+  input.value=already?'':q;            // click again to toggle the topic off
+  [...topicsEl.children].forEach(x=>x.classList.toggle('active',x===c&&!already));
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
 const filttoggle=document.getElementById('filttoggle'), filters=document.getElementById('filters');
 filttoggle.addEventListener('click',()=>{
   const open=filters.hasAttribute('hidden');
-  if(open){filters.removeAttribute('hidden');filttoggle.setAttribute('aria-expanded','true');filttoggle.textContent='✕ Filters';}
-  else{filters.setAttribute('hidden','');filttoggle.setAttribute('aria-expanded','false');filttoggle.textContent='☰ Filters';}
+  if(open){filters.removeAttribute('hidden');filttoggle.setAttribute('aria-expanded','true');filttoggle.textContent='✕ Filters & topics';}
+  else{filters.setAttribute('hidden','');filttoggle.setAttribute('aria-expanded','false');filttoggle.textContent='☰ Filters & topics';}
 });
 
-input.addEventListener('input',render);
+input.addEventListener('input',()=>{
+  [...topicsEl.children].forEach(x=>x.classList.remove('active'));
+  render();
+});
 clearBtn.addEventListener('click',()=>{input.value='';input.focus();render()});
 document.addEventListener('keydown',e=>{
   if(e.key==='/'&&document.activeElement!==input){e.preventDefault();input.focus()}
