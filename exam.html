@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Certified Architect – Foundations · Q&A Search</title>
+<style>
+  :root{
+    --bg:#f4f1ea; --card:#fffdf8; --ink:#23201b; --muted:#6b655a;
+    --accent:#b5532a; --accent-soft:#f0d9cd; --line:#e4ded2; --hit:#ffe08a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink)}
+  header{position:sticky;top:0;z-index:10;background:var(--bg);
+    padding:18px 16px 12px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 2px;font-size:19px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .searchwrap{position:relative}
+  #q{width:100%;padding:13px 42px 13px 14px;font-size:17px;border:2px solid var(--line);
+    border-radius:10px;background:var(--card);color:var(--ink);outline:none}
+  #q:focus{border-color:var(--accent)}
+  #clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;
+    font-size:20px;color:var(--muted);cursor:pointer;padding:6px;display:none}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--muted);
+    padding:5px 11px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .count{color:var(--muted);font-size:13px;margin-top:9px}
+  main{max-width:860px;margin:0 auto;padding:14px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin:11px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .meta{display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap}
+  .num{font-weight:700;color:var(--accent)}
+  .tag{font-size:11px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);
+    background:var(--accent-soft);border-radius:6px;padding:2px 7px}
+  .qtext{font-weight:600}
+  details{margin-top:9px}
+  summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";}
+  details[open] summary::before{content:"▾ ";}
+  .answer{margin-top:8px;padding:10px 12px;background:#f7f3ea;border-left:3px solid var(--accent);
+    border-radius:0 8px 8px 0}
+  .pick{display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;
+    background:var(--accent);color:#fff;border-radius:6px;font-weight:700;font-size:13px;margin-right:6px}
+  mark{background:var(--hit);color:inherit;border-radius:3px;padding:0 1px}
+  .empty{text-align:center;color:var(--muted);padding:40px 0}
+  .hint{color:var(--muted);font-size:12px;margin-top:4px}
+  kbd{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Claude Certified Architect – Foundations</h1>
+  <div class="sub">60-question practice exam · type a keyword to jump to the answer</div>
+  <div class="searchwrap">
+    <input id="q" type="search" placeholder="Search questions &amp; answers… (e.g. escalate, batch, fork, stop_reason)" autocomplete="off" autofocus>
+    <button id="clear" title="Clear">×</button>
+  </div>
+  <div class="hint">Tip: results filter as you type. Press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear.</div>
+  <div class="chips" id="chips"></div>
+  <div class="count" id="count"></div>
+</header>
+<main>
+  <div id="list"></div>
+  <div class="empty" id="empty" style="display:none">No questions match — try a different keyword.</div>
+</main>
+
+<script>
+const DATA = [
+ {n:1,s:1,q:"Claude frequently requests get_customer and lookup_order in separate sequential turns even when both are needed upfront. How do you reduce API round-trips?",a:"B",t:"Create composite tools like get_customer_with_orders that bundle common lookup combinations into single calls."},
+ {n:2,s:1,q:"Tools return inconsistent data formats (Unix timestamps, ISO 8601 dates, numeric status codes); some are third-party MCP servers you cannot modify. How do you normalize?",a:"B",t:"Modify tools you control to return human-readable formats; create wrapper tools for third-party tools."},
+ {n:3,s:1,q:"Prevent the agent from calling order/refund tools before customer identity is verified (financial-harm reliability).",a:"D",t:"Add a programmatic prerequisite that blocks lookup_order and process_refund calls until get_customer has returned a verified customer ID."},
+ {n:4,s:1,q:"A customer message contains multiple distinct concerns. How should the agent handle it?",a:"B",t:"Decompose the request into distinct concerns, then investigate each in parallel using shared customer context before synthesizing a resolution."},
+ {n:5,s:1,q:"The agent is miscalibrated on when to escalate vs. resolve autonomously. How to fix?",a:"C",t:"Add explicit escalation criteria to your system prompt with few-shot examples demonstrating when to escalate versus resolve autonomously."},
+ {n:6,s:1,q:"How does the application know when to continue the tool loop vs. stop?",a:"C",t:"Check the stop_reason field in Claude's response—continue when it equals \"tool_use\" and stop when it equals \"end_turn\"."},
+ {n:7,s:1,q:"Improve tool selection on ambiguous cases.",a:"C",t:"Add 4-6 examples targeting ambiguous scenarios, each showing reasoning for why one tool was chosen over plausible alternatives."},
+ {n:8,s:1,q:"First step to fix poor tool selection.",a:"C",t:"Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools."},
+ {n:9,s:1,q:"Why does Claude misroute \"account\" requests despite good tool descriptions?",a:"D",t:"The model's base training creates associations between \"account\" terminology and customer-related operations that override the tool descriptions."},
+ {n:10,s:1,q:"get_customer returns multiple matches for an identifier. What should the agent do?",a:"A",t:"Instruct Claude to ask for an additional identifier (email, phone, or order number) when get_customer returns multiple matches, before taking any customer-specific action."},
+ {n:11,s:1,q:"Responses have variable gaps in completeness. Adaptive fix?",a:"B",t:"Add a self-critique step where the agent evaluates its draft response for completeness—ensuring it addresses the customer's concern, includes relevant context, and is accurate."},
+ {n:12,s:1,q:"Transactional facts get lost in summarized conversation history.",a:"C",t:"Extract transactional facts (amounts, dates, order numbers) into a persistent \"case facts\" block included in each prompt, outside the summarized history."},
+ {n:13,s:1,q:"Handle multi-concern customer messages reliably.",a:"D",t:"Implement a preprocessing layer that uses a separate model call to decompose multi-concern messages into individual requests, process each independently, then combine."},
+ {n:14,s:1,q:"First thing to review when tools are mis-selected.",a:"D",t:"Review tool descriptions to ensure they clearly distinguish each tool's purpose."},
+ {n:15,s:1,q:"Customer requests a competitor price match; policy allows adjustments for price drops on your own site within 14 days but is silent on competitors.",a:"D",t:"Escalate: the competitor price-match is a genuine policy gap requiring human interpretation."},
+ {n:16,s:2,q:"Apply test conventions to test files scattered across the repo (not in one directory).",a:"A",t:"Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths."},
+ {n:17,s:2,q:"Ambiguous Slack-integration architecture decision before implementing.",a:"D",t:"Enter plan mode to explore the integration options and their architectural implications, then present a recommendation before implementing."},
+ {n:18,s:2,q:"Bloated CLAUDE.md is hard to maintain.",a:"C",t:"Create separate markdown files in .claude/rules/, each covering one topic (e.g., testing.md, api-conventions.md)."},
+ {n:19,s:2,q:"A skill has three issues (missing required params, verbose output pollution, over-broad tool access).",a:"A",t:"Add argument-hint frontmatter to prompt for required parameters, use context: fork to isolate execution, and restrict allowed-tools to file write operations."},
+ {n:20,s:2,q:"Verbose Phase 1 exploration output pollutes the main context.",a:"C",t:"Use the Explore subagent for Phase 1 to isolate verbose output and return a summary, then continue Phases 2-3 in the main conversation."},
+ {n:21,s:2,q:"A skill's analysis output pollutes the main session.",a:"B",t:"Add context: fork to the skill's frontmatter to run the analysis in an isolated sub-agent context."},
+ {n:22,s:2,q:"Personalize a team-shared skill for your own use.",a:"A",t:"Create a personal version in ~/.claude/skills/ with a different name like /my-commit."},
+ {n:23,s:2,q:"Isolate exploration discussion from contaminating implementation.",a:"D",t:"Add context: fork to the skill's frontmatter."},
+ {n:24,s:2,q:"Use exemplar endpoints as a pattern only when creating new endpoints.",a:"D",t:"Create a skill that references the exemplar endpoints and includes pattern-following instructions, invoked on-demand via slash command."},
+ {n:25,s:2,q:"A coding guideline only some developers receive.",a:"D",t:"The guideline exists in the original developers' ~/.claude/CLAUDE.md (user-level) instead of the project's .claude/CLAUDE.md. Move it to the project level."},
+ {n:26,s:2,q:"Share an MCP server config with the team without committing credentials.",a:"B",t:"Add the server to a project-scoped .mcp.json with environment variable expansion (${GITHUB_TOKEN}) for authentication, and document the required environment in the README."},
+ {n:27,s:2,q:"Organize universal standards vs. task-specific workflows.",a:"C",t:"Keep universal standards in CLAUDE.md and create Skills for task-specific workflows (PR reviews, deployments, migrations) with trigger keywords."},
+ {n:28,s:2,q:"Prose instructions for a transformation are ambiguous.",a:"D",t:"Provide 2-3 concrete input-output examples showing the expected transformation for representative API responses."},
+ {n:29,s:2,q:"Distribute slash commands to the whole team automatically.",a:"A",t:"Place them in the .claude/commands/ directory in the project repository."},
+ {n:30,s:2,q:"Plan a monolith-to-microservices restructuring before coding.",a:"B",t:"Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes."},
+ {n:31,s:3,q:"Context bloat from verbose subagent outputs reaching the coordinator.",a:"B",t:"Modify upstream agents to return structured data (key facts, citations, relevance scores) instead of verbose content and reasoning."},
+ {n:32,s:3,q:"Subagents research overlapping material.",a:"D",t:"Have the coordinator explicitly partition the research space before delegation, assigning distinct subtopics or source types to each agent."},
+ {n:33,s:3,q:"Document analysis encounters two conflicting figures.",a:"C",t:"Complete the document analysis with both figures included, explicitly annotate the conflict with source attribution, and let the coordinator decide how to reconcile."},
+ {n:34,s:3,q:"Error handling for web-search results (failures vs. empty).",a:"D",t:"Distinguish access failures (timeout) needing retry decisions from valid empty results (\"0 results\") representing successful queries."},
+ {n:35,s:3,q:"Two sets of findings must be combined.",a:"A",t:"The coordinator passes both sets of findings to the synthesis agent for unified integration."},
+ {n:36,s:3,q:"Reduce coordinator overload from subagent errors (transient PDF failures).",a:"B",t:"Have the subagent implement local recovery for transient failures and only propagate errors it cannot resolve to the coordinator, including what was attempted and partial results."},
+ {n:37,s:3,q:"Fact verification routing where 85% are simple lookups.",a:"D",t:"Give the synthesis agent a scoped verify_fact tool for simple lookups, while complex verifications continue delegating to the web search agent through the coordinator."},
+ {n:38,s:3,q:"Multi-agent error-handling architecture.",a:"A",t:"The coordinator can observe all interactions, handle errors consistently, and decide what information each subagent should receive."},
+ {n:39,s:3,q:"45% of \"analyze uploaded report\" requests misrouted to a mislabeled web-search tool.",a:"B",t:"Rename the web search tool to extract_web_results and update its description to \"processes and returns information retrieved from web searches and URLs.\""},
+ {n:40,s:3,q:"A corrupted PDF is encountered by a subagent.",a:"D",t:"Return the error with context to the coordinator agent, letting it decide how to proceed."},
+ {n:41,s:3,q:"The web search subagent times out on a complex topic; design how the failure flows back to the coordinator to enable intelligent recovery.",a:"B",t:"Return structured error context to the coordinator including the failure type, the attempted query, any partial results, and potential alternative approaches."},
+ {n:42,s:3,q:"A document analysis agent given a general-purpose fetch_url tool now frequently fetches search-result pages (ad-hoc web search), causing inconsistent results. Most effective fix?",a:"A",t:"Replace fetch_url with a load_document tool that validates URLs point to document formats."},
+ {n:43,s:3,q:"Synthesis reliably cites the first 15K and final 10K tokens but omits critical findings in the middle 50K. How to restructure the aggregated input?",a:"D",t:"Place a key findings summary at the beginning of the aggregated input and organize detailed results with explicit section headers for easier navigation."},
+ {n:44,s:3,q:"Web search returned 3 of 5 source categories (2 timed out); synthesis must produce findings from mixed-quality input. Best error-propagation strategy?",a:"A",t:"Structure the synthesis output with coverage annotations indicating which findings are well-supported versus which topic areas have gaps due to unavailable sources."},
+ {n:45,s:3,q:"Final reports cover only visual arts; the coordinator decomposed the topic into three visual-arts subtasks. Most likely root cause?",a:"C",t:"The coordinator agent's task decomposition is too narrow, resulting in subagent assignments that don't cover all relevant domains of the topic."},
+ {n:46,s:4,q:"A re-review after fixes still re-flags 5 already-fixed issues. Eliminate redundant feedback while keeping thorough analysis.",a:"A",t:"Include prior review findings in context, instructing Claude to only report new or still-unaddressed issues."},
+ {n:47,s:4,q:"Reviews are valid but not actionable; detailed instructions still yield inconsistent output. Most reliable prompting technique for consistently actionable feedback?",a:"B",t:"Add 3-4 few-shot examples showing the exact format you want: issue identified, code location, specific fix suggestion."},
+ {n:48,s:4,q:"False-positive rates vary by category (style 52%, docs 48%); developers are dismissing findings. Restore trust while improving the system.",a:"B",t:"Temporarily disable high false positive categories (style, naming, documentation) and run only high-precision categories while improving prompts."},
+ {n:49,s:4,q:"Subtle issues are only caught by a different reviewer; Claude's generation reasoning considered but dismissed them. Address the root cause of this self-review limitation.",a:"D",t:"Have a second, independent Claude Code instance review the changes without seeing the generator's reasoning."},
+ {n:50,s:4,q:"CI runs Claude Code in --print mode producing narrative paragraphs; you want to auto-post each finding as an inline PR comment (needs structured data). Most effective approach?",a:"D",t:"Use CLI flags --output-format json and --json-schema to enforce structured findings, then parse output to post inline comments via the GitHub API."},
+ {n:51,s:4,q:"Two modes: a blocking pre-merge-commit hook and an overnight deep analysis that polls. Batches API gives 50% savings but up to 24h. Which mode should use batch?",a:"B",t:"Deep analysis only."},
+ {n:52,s:4,q:"Test-case suggestions include 6 duplicates already covered in the existing suite. Most effective change to reduce duplicates?",a:"D",t:"Include the existing test file in the context so Claude can identify what scenarios are already covered."},
+ {n:53,s:4,q:"claude \"...\" hangs waiting for interactive input in a pipeline. Correct approach to run Claude Code in an automated pipeline?",a:"A",t:"Add the -p flag: claude -p \"Analyze this pull request for security issues\"."},
+ {n:54,s:4,q:"Three analyses: blocking PR style checks, weekly security audits, nightly test generation. Match each task to its API to optimize cost while keeping acceptable developer experience.",a:"D",t:"Use synchronous calls for PR style checks; use the Message Batches API for weekly security audits and nightly test generation."},
+ {n:55,s:4,q:"Inconsistent severity ratings (same issue \"critical\" in some PRs, \"medium\" in others). Improve severity consistency.",a:"B",t:"Include explicit severity criteria in your prompt with concrete code examples for each severity level."},
+ {n:56,s:4,q:"15 findings/PR, 40% false positives; bottleneck is investigation time (clicking into each finding to read reasoning); filtering before review is rejected. Best change?",a:"B",t:"Require Claude to include its reasoning and confidence assessment inline with each finding."},
+ {n:57,s:4,q:"A single-pass review of 14 files produces inconsistent, contradictory results. How should you restructure the review?",a:"A",t:"Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow."},
+ {n:58,s:4,q:"Reduce API costs: a blocking pre-merge check plus an overnight technical-debt report. Manager proposes switching both to the Batches API. How to evaluate?",a:"B",t:"Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks."},
+ {n:59,s:4,q:"An iterative review uses tool calling (requesting related files mid-analysis). Evaluating batch processing—what is the primary technical constraint?",a:"A",t:"The asynchronous model prevents executing tools mid-request and returning results for Claude to continue analysis."},
+ {n:60,s:4,q:"Comment/docstring review over-flags acceptable patterns (TODO markers, plain descriptions) and misses comments describing behavior the code no longer implements. Change addressing the root cause?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."}
+];
+const SCEN = {1:"Customer Support",2:"Claude Code",3:"Multi-Agent Research",4:"CI / Code Review"};
+
+const list=document.getElementById('list'), empty=document.getElementById('empty'),
+      countEl=document.getElementById('count'), input=document.getElementById('q'),
+      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips');
+let scen=0;
+
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function hl(s,terms){let h=esc(s);for(const t of terms){if(!t)continue;
+  const re=new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');h=h.replace(re,'<mark>$1</mark>')}return h}
+
+function render(){
+  const raw=input.value.trim();
+  const terms=raw.toLowerCase().split(/\s+/).filter(Boolean);
+  clearBtn.style.display=raw?'block':'none';
+  const rows=DATA.filter(d=>{
+    if(scen&&d.s!==scen)return false;
+    if(!terms.length)return true;
+    const hay=(d.n+' '+d.q+' '+d.a+' '+d.t).toLowerCase();
+    return terms.every(t=>hay.includes(t));
+  });
+  countEl.textContent=rows.length+' of 60 question'+(rows.length===1?'':'s')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
+  empty.style.display=rows.length?'none':'block';
+  list.innerHTML=rows.map(d=>`
+    <div class="card">
+      <div class="meta"><span class="num">Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
+      <div class="qtext">${hl(d.q,terms)}</div>
+      <details${raw?' open':''}>
+        <summary>Show answer</summary>
+        <div class="answer"><span class="pick">${d.a}</span>${hl(d.t,terms)}</div>
+      </details>
+    </div>`).join('');
+}
+
+chipsEl.innerHTML=[[0,'All'],[1,SCEN[1]],[2,SCEN[2]],[3,SCEN[3]],[4,SCEN[4]]]
+  .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-s="${v}">${l}</span>`).join('');
+chipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
+  scen=+c.dataset.s;[...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===scen));render()});
+
+input.addEventListener('input',render);
+clearBtn.addEventListener('click',()=>{input.value='';input.focus();render()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&document.activeElement!==input){e.preventDefault();input.focus()}
+  if(e.key==='Escape'){input.value='';render();input.blur()}
+});
+render();
+</script>
+</body>
+</html>

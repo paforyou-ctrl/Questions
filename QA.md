@@ -2,6 +2,13 @@
 
 A running record of questions and their answers.
 
+## Quick search
+
+- **[exam.html](./exam.html)** — open in any browser for instant keyword search.
+  Type a word from a question (e.g. `escalate`, `batch`, `fork`, `stop_reason`,
+  `plan mode`) and the matching question + answer appears immediately, with the
+  keyword highlighted. Filter by scenario with the chips at top.
+
 ## Stored sets
 
 - **[Claude Certified Architect – Foundations Certification](./CLAUDE_CERTIFIED_ARCHITECT_FOUNDATIONS_EXAM.md)**
