@@ -70,7 +70,6 @@
     <button id="filttoggle" class="filttoggle" aria-expanded="false" aria-controls="filters">☰ Filters &amp; topics</button>
   </div>
   <div class="filters" id="filters" hidden>
-    <div class="chips" id="setchips"></div>
     <div class="chips" id="chips"></div>
     <div class="topicwrap">
       <div class="topiclabel">Find by topic — one click</div>
@@ -210,8 +209,7 @@ const SCEN = {1:"Customer Support",2:"Claude Code",3:"Multi-Agent Research",4:"C
 
 const list=document.getElementById('list'), empty=document.getElementById('empty'),
       countEl=document.getElementById('count'), input=document.getElementById('q'),
-      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips'),
-      setchipsEl=document.getElementById('setchips');
+      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips');
 let scen=0, setFilter=0;
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -239,11 +237,6 @@ function render(){
     </div>`).join('');
 }
 
-setchipsEl.innerHTML=[[0,'All sets'],[1,'Set 1'],[2,'Set 2']]
-  .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-set="${v}">${l}</span>`).join('');
-setchipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
-  setFilter=+c.dataset.set;[...setchipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.set===setFilter));render()});
-
 chipsEl.innerHTML=[[0,'All'],[1,SCEN[1]],[2,SCEN[2]],[3,SCEN[3]],[4,SCEN[4]]]
   .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-s="${v}">${l}</span>`).join('');
 chipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
@@ -265,10 +258,9 @@ topicsEl.innerHTML=TOPICS.map(([l,q])=>`<span class="topic" data-q="${q}">${l}</
 topicsEl.addEventListener('click',e=>{
   const c=e.target.closest('.topic');if(!c)return;
   const q=c.dataset.q, already=input.value.trim().toLowerCase()===q.toLowerCase();
-  // reset set/scenario filters so a topic searches the whole bank
-  scen=0;setFilter=0;
+  // reset scenario filter so a topic searches the whole bank
+  scen=0;
   [...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===0));
-  [...setchipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.set===0));
   input.value=already?'':q;            // click again to toggle the topic off
   [...topicsEl.children].forEach(x=>x.classList.toggle('active',x===c&&!already));
   render();
