@@ -65,7 +65,6 @@
     <button id="clear" title="Clear">×</button>
   </div>
   <div class="bar">
-    <span class="count" id="count"></span>
     <button id="filttoggle" class="filttoggle" aria-expanded="false" aria-controls="filters">☰ Filters &amp; topics</button>
   </div>
   <div class="filters" id="filters" hidden>
@@ -206,7 +205,7 @@ const DATA = [
 const SCEN = {1:"Customer Support",2:"Claude Code",3:"Multi-Agent Research",4:"CI / Code Review"};
 
 const list=document.getElementById('list'), empty=document.getElementById('empty'),
-      countEl=document.getElementById('count'), input=document.getElementById('q'),
+      input=document.getElementById('q'),
       clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips');
 let scen=0, setFilter=0;
 
@@ -225,7 +224,6 @@ function render(){
     const hay=(d.n+' '+d.q+' '+d.a+' '+d.t).toLowerCase();
     return terms.every(t=>hay.includes(t));
   });
-  countEl.textContent=rows.length+' of '+DATA.length+' question'+(rows.length===1?'':'s')+(setFilter?' · Set '+setFilter:'')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
   empty.style.display=rows.length?'none':'block';
   list.innerHTML=rows.map(d=>`
     <div class="card" id="q-${d.set||1}-${d.n}">
