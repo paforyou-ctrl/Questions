@@ -34,16 +34,13 @@
   .num{font-weight:700;color:var(--accent)}
   .tag{font-size:11px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);
     background:var(--accent-soft);border-radius:6px;padding:2px 7px}
-  .qtext{font-weight:600}
-  details{margin-top:9px}
-  summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;list-style:none}
-  summary::-webkit-details-marker{display:none}
-  summary::before{content:"▸ ";}
-  details[open] summary::before{content:"▾ ";}
-  .answer{margin-top:8px;padding:10px 12px;background:#f7f3ea;border-left:3px solid var(--accent);
-    border-radius:0 8px 8px 0}
+  .qtext{font-weight:600;font-size:17px}
+  .answer{margin-top:11px;padding:12px 14px;background:#f7f3ea;border-left:4px solid var(--accent);
+    border-radius:0 8px 8px 0;font-size:15.5px}
+  .alabel{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--muted);margin-bottom:5px;font-weight:700}
   .pick{display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;
-    background:var(--accent);color:#fff;border-radius:6px;font-weight:700;font-size:13px;margin-right:6px}
+    background:var(--accent);color:#fff;border-radius:6px;font-weight:700;font-size:13px;margin-left:2px}
   mark{background:var(--hit);color:inherit;border-radius:3px;padding:0 1px}
   .empty{text-align:center;color:var(--muted);padding:40px 0}
   .hint{color:var(--muted);font-size:12px;margin-top:4px}
@@ -58,7 +55,7 @@
     <input id="q" type="search" placeholder="Search questions &amp; answers… (e.g. escalate, batch, fork, stop_reason)" autocomplete="off" autofocus>
     <button id="clear" title="Clear">×</button>
   </div>
-  <div class="hint">Tip: results filter as you type. Press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear.</div>
+  <div class="hint">Question and answer are both shown in full. Results filter as you type — press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear.</div>
   <div class="chips" id="chips"></div>
   <div class="count" id="count"></div>
 </header>
@@ -157,10 +154,7 @@ function render(){
     <div class="card">
       <div class="meta"><span class="num">Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
       <div class="qtext">${hl(d.q,terms)}</div>
-      <details${raw?' open':''}>
-        <summary>Show answer</summary>
-        <div class="answer"><span class="pick">${d.a}</span>${hl(d.t,terms)}</div>
-      </details>
+      <div class="answer"><span class="alabel">Answer <span class="pick">${d.a}</span></span> ${hl(d.t,terms)}</div>
     </div>`).join('');
 }
 
