@@ -45,18 +45,28 @@
   .empty{text-align:center;color:var(--muted);padding:40px 0}
   .hint{color:var(--muted);font-size:12px;margin-top:4px}
   kbd{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .topicwrap{margin-top:12px}
+  .topiclabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .topic{border:1px solid var(--line);background:var(--card);color:var(--ink);
+    padding:5px 11px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none}
+  .topic:hover,.topic.active{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
 <header>
   <h1>Claude Certified Architect – Foundations</h1>
-  <div class="sub">60-question practice exam · type a keyword to jump to the answer</div>
+  <div class="sub">Practice exams · Set 1 (60 Q) + Set 2 (60 Q) · type a keyword to jump to the answer</div>
   <div class="searchwrap">
     <input id="q" type="search" placeholder="Search questions &amp; answers… (e.g. escalate, batch, fork, stop_reason)" autocomplete="off" autofocus>
     <button id="clear" title="Clear">×</button>
   </div>
-  <div class="hint">Question and answer are both shown in full. Results filter as you type — press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear.</div>
+  <div class="hint">Question and answer are both shown in full. Results filter as you type — press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear. Or click a <strong>topic</strong> below to jump straight to the relevant questions.</div>
+  <div class="chips" id="setchips"></div>
   <div class="chips" id="chips"></div>
+  <div class="topicwrap">
+    <div class="topiclabel">Find by topic — one click</div>
+    <div class="chips" id="topics"></div>
+  </div>
   <div class="count" id="count"></div>
 </header>
 <main>
@@ -125,14 +135,75 @@ const DATA = [
  {n:57,s:4,q:"A single-pass review of 14 files produces inconsistent, contradictory results. How should you restructure the review?",a:"A",t:"Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow."},
  {n:58,s:4,q:"Reduce API costs: a blocking pre-merge check plus an overnight technical-debt report. Manager proposes switching both to the Batches API. How to evaluate?",a:"B",t:"Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks."},
  {n:59,s:4,q:"An iterative review uses tool calling (requesting related files mid-analysis). Evaluating batch processing—what is the primary technical constraint?",a:"A",t:"The asynchronous model prevents executing tools mid-request and returning results for Claude to continue analysis."},
- {n:60,s:4,q:"Comment/docstring review over-flags acceptable patterns (TODO markers, plain descriptions) and misses comments describing behavior the code no longer implements. Change addressing the root cause?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."}
+ {n:60,s:4,q:"Comment/docstring review over-flags acceptable patterns (TODO markers, plain descriptions) and misses comments describing behavior the code no longer implements. Change addressing the root cause?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."},
+ {set:2,n:1,s:1,q:"Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. Most effective first step to improve tool selection reliability?",a:"C",t:"Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools."},
+ {set:2,n:2,s:1,q:"Progressive summarization at 70% capacity condenses customer-stated amounts (\"the 15% discount I mentioned\") stated 20+ turns ago into vague summaries (\"discussed promotional pricing\"), and the agent responds with incorrect values. Most effective fix?",a:"B",t:"Extract transactional facts (amounts, dates, order numbers) into a persistent \"case facts\" block included in each prompt, outside the summarized history."},
+ {set:2,n:3,s:1,q:"The agent misinterprets MCP tool data: Unix timestamps from get_customer, ISO 8601 dates from lookup_order, and numeric status codes (1=pending, 2=shipped); some tools are third-party MCP servers you cannot modify. Most maintainable approach to normalize data formats?",a:"B",t:"Use a PostToolUse hook to intercept tool results and apply formatting transformations before agent processing."},
+ {set:2,n:4,s:1,q:"In testing, the agent frequently calls get_customer when users ask about order status, even though lookup_order would be more appropriate. What should you examine first to address this issue?",a:"B",t:"Review tool descriptions to ensure they clearly distinguish each tool's purpose."},
+ {set:2,n:5,s:1,q:"After calling get_customer and lookup_order, the agent faces uncertainty. Which situation is the most appropriate trigger for calling escalate_to_human?",a:"A",t:"The customer requests a price match against a competitor; policy allows adjustments for price drops on your own site within 14 days but is silent on competitor pricing—a genuine policy gap requiring human interpretation."},
+ {set:2,n:6,s:1,q:"The agent achieves 55% first-contact resolution (target 80%): it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions. Most effective way to improve escalation calibration?",a:"A",t:"Add explicit escalation criteria to your system prompt with few-shot examples demonstrating when to escalate versus resolve autonomously."},
+ {set:2,n:7,s:1,q:"Simple requests (\"refund order #1234\") succeed in 3-4 tool calls at 99%, but complex multi-part requests (\"charged twice, discount didn't apply, want to cancel\") average 12+ tool calls at 54%, investigating concerns sequentially and re-gathering redundant customer data. Most effective change to improve complex request handling?",a:"D",t:"Decompose the request into distinct concerns, then investigate each in parallel using shared customer context before synthesizing a resolution."},
+ {set:2,n:8,s:1,q:"When customers include \"account\" in messages, the agent calls get_customer first 78% of the time; without \"account\" it calls lookup_order first 93% of the time. The tool descriptions are well-written and unambiguous. Most likely root cause of this discrepancy?",a:"A",t:"The system prompt contains keyword-sensitive instructions that steer behavior based on terms like \"account,\" creating unintended tool selection patterns."},
+ {set:2,n:9,s:1,q:"Implementing the agentic loop: after each API call to Claude you must decide whether to continue the loop (execute requested tools and call Claude again) or stop (present the final response). What determines this decision?",a:"B",t:"Check the stop_reason field in Claude's response—continue when it equals \"tool_use\" and stop when it equals \"end_turn\"."},
+ {set:2,n:10,s:1,q:"The agent averages 4+ API round-trips per resolution, frequently requesting get_customer and lookup_order in separate sequential turns even when both are needed upfront. Most effective way to reduce round-trips?",a:"D",t:"Prompt Claude to batch tool requests per turn, and return all tool results together before the next API call."},
+ {set:2,n:11,s:1,q:"Single-concern requests resolve at 94% accuracy but multi-concern messages (e.g., \"refund order #1234 and update shipping for #5678\") drop to 58%, with the agent addressing only one concern or mixing up parameters. Most effective approach to improve reliability for multi-concern requests?",a:"A",t:"Add few-shot examples to your prompt demonstrating the correct reasoning and tool sequence for multi-concern requests."},
+ {set:2,n:12,s:1,q:"Complex cases (billing disputes, multi-order returns) score 15% lower on CSAT than simple cases even when technically correct: the agent inconsistently explains reasoning, sometimes omitting policy details, other times timelines or next steps—gaps vary by case. Improve quality without human-review overhead. Most effective?",a:"C",t:"Add a self-critique step where the agent evaluates its draft response for completeness—ensuring it addresses the customer's concern, includes relevant context, and anticipates follow-up questions."},
+ {set:2,n:13,s:1,q:"In 12% of cases the agent skips get_customer entirely and calls lookup_order using only the customer's stated name, occasionally causing misidentified accounts and incorrect refunds. What change most effectively addresses this reliability issue?",a:"D",t:"Add a programmatic prerequisite that blocks lookup_order and process_refund calls until get_customer has returned a verified customer ID."},
+ {set:2,n:14,s:1,q:"get_customer returns all matches when searching by name; Claude picks the customer with the most recent order on multi-match, but 15% of multi-match cases proceed with the wrong account. How should you address this?",a:"A",t:"Instruct Claude to ask for an additional identifier (email, phone, or order number) when get_customer returns multiple matches, before taking any customer-specific action."},
+ {set:2,n:15,s:1,q:"The agent sometimes selects get_customer when lookup_order is more appropriate, especially for ambiguous requests (\"I need help with my recent purchase\"). You decide to add few-shot examples. Which approach most effectively improves tool selection?",a:"B",t:"Add 4-6 examples targeting ambiguous scenarios, each showing reasoning for why one tool was chosen over plausible alternatives."},
+ {set:2,n:16,s:2,q:"A /migration skill (accepts a name via $ARGUMENTS) has three issues: developers invoke it without arguments (poorly-named files), it incorporates schema details from unrelated earlier conversations, and a developer accidentally triggered destructive test cleanup under broad tool access. Which configuration addresses all three?",a:"C",t:"Add argument-hint frontmatter to prompt for required parameters, use context: fork to isolate execution, and restrict allowed-tools to file write operations."},
+ {set:2,n:17,s:2,q:"Adding Slack as a notification channel; existing channels (email/SMS/push) have clear patterns, but Slack offers fundamentally different approaches (incoming webhooks, bot tokens, Slack Apps) and the ticket just says \"add Slack support\" without specifying method or whether delivery tracking is needed. How should you approach this?",a:"B",t:"Enter plan mode to explore the integration options and their architectural implications, then present a recommendation before implementing."},
+ {set:2,n:18,s:2,q:"A custom /explore-alternatives skill for brainstorming implementation approaches causes Claude's later responses to reference abandoned approaches or carry exploratory context into actual implementation work. Most effective way to configure this skill?",a:"A",t:"Add context: fork to the skill's frontmatter to isolate the exploration in a separate context."},
+ {set:2,n:19,s:2,q:"You want a custom /review slash command running your team's standard code-review checklist, available to every developer when they clone or pull the repository. Where should you create this command file?",a:"A",t:"In the .claude/commands/ directory in the project repository."},
+ {set:2,n:20,s:2,q:"CLAUDE.md has grown to 400+ lines (coding standards, testing conventions, PR review checklist, deployment instructions, migration procedures). You want coding/testing always applied, but PR review, deployment, and migration guidance only when performing those tasks. Most effective restructuring?",a:"D",t:"Keep universal standards in CLAUDE.md and create Skills for task-specific workflows (PR reviews, deployments, migrations) with trigger keywords."},
+ {set:2,n:21,s:2,q:"Claude Code is implementing a function that transforms API responses into a normalized internal format. After two iterations the output structure still doesn't match (fields nested differently, timestamps wrong); prose requirements get interpreted differently each time. Most effective approach for the next iteration?",a:"D",t:"Provide 2-3 concrete input-output examples showing the expected transformation for representative API responses."},
+ {set:2,n:22,s:2,q:"An /analyze-codebase skill performs comprehensive analysis (dependency scanning, coverage, quality metrics); after running it, Claude becomes less responsive and loses track of the original task. Most effective fix while preserving full analysis capability?",a:"C",t:"Add context: fork to the skill's frontmatter to run the analysis in an isolated sub-agent context."},
+ {set:2,n:23,s:2,q:"A /commit skill in .claude/skills/commit/SKILL.md is team-shared; one developer wants to customize it (different message format, extra checks) without affecting teammates. What should you recommend?",a:"D",t:"Create a personal version in ~/.claude/skills/ with a different name like /my-commit."},
+ {set:2,n:24,s:2,q:"The codebase has area-specific conventions (React functional+hooks, async/await API handlers, repository-pattern DB models); test files sit alongside the code they test (Button.test.tsx next to Button.tsx) and all tests should follow the same conventions regardless of location. Most maintainable way for Claude to auto-apply the right conventions?",a:"C",t:"Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths."},
+ {set:2,n:25,s:2,q:"Three developers find Claude follows the \"always include comprehensive error handling\" guideline, but a newly-joined fourth developer doesn't—all in the same repo with latest code pulled. Most likely cause and fix?",a:"A",t:"The guideline exists in the original developers' ~/.claude/CLAUDE.md (user level) instead of the project's .claude/CLAUDE.md—move the instruction to the project level so all team members receive it."},
+ {set:2,n:26,s:2,q:"You're assigned to restructure a monolith into microservices: changes across dozens of files and decisions about service boundaries and module dependencies. Which approach should you take?",a:"A",t:"Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes."},
+ {set:2,n:27,s:2,q:"A 500+ line CLAUDE.md mixes TypeScript conventions, testing guidelines, API patterns, and deployment procedures, making sections hard to find and update. What approach does Claude Code support for organizing project instructions into focused topic modules?",a:"B",t:"Create separate markdown files in .claude/rules/, each covering one topic (e.g., testing.md, api-conventions.md)."},
+ {set:2,n:28,s:2,q:"Adding error-handling wrappers across a 120-file codebase in three phases (discover call sites, design approach, implement); Phase 1 generates verbose output listing hundreds of call sites and the context window fills before discovery finishes. Most effective approach while maintaining implementation consistency?",a:"D",t:"Use the Explore subagent for Phase 1 to isolate verbose output and return a summary, then continue Phases 2-3 in the main conversation."},
+ {set:2,n:29,s:2,q:"Your team wants a GitHub MCP server for PR lookups and CI status via Claude Code; each of six developers has their own personal access token, and you want consistent tooling without committing credentials. Most effective configuration approach?",a:"C",t:"Add the server to a project-scoped .mcp.json with environment variable expansion (${GITHUB_TOKEN}) for authentication, and document the required environment variable in the project README."},
+ {set:2,n:30,s:2,q:"Including 2-3 full exemplar endpoint implementations as context improves consistency when generating new API endpoints, but that context is only useful for creating new endpoints—not bug fixes, code reviews, or other API directory work. Most efficient configuration approach?",a:"C",t:"Create a skill that references the exemplar endpoints and includes pattern-following instructions, invoked on-demand via slash command."},
+ {set:2,n:31,s:4,q:"CI has two Claude-powered review modes: a pre-merge-commit hook that blocks PR merging until complete, and overnight \"deep analysis\" that polls for batch completion then posts suggestions. The Message Batches API gives 50% savings but may take up to 24h. Which mode should use batch processing?",a:"D",t:"Deep analysis only."},
+ {set:2,n:32,s:4,q:"Automated code review gives inconsistent severity ratings—similar null-pointer risks are \"critical\" in some PRs but \"medium\" in others—and developer trust is declining. Most effective way to improve severity consistency?",a:"D",t:"Include explicit severity criteria in your prompt with concrete code examples for each severity level."},
+ {set:2,n:33,s:4,q:"An initial review produces 12 findings; a developer pushes fixes; the re-review produces 8 findings but 5 duplicate earlier comments on code already fixed in the new commits. Most effective way to eliminate redundant feedback while maintaining thorough analysis?",a:"D",t:"Include prior review findings in context, instructing Claude to only report new or still-unaddressed issues."},
+ {set:2,n:34,s:4,q:"Reviews average 15 findings/PR at a 40% false-positive rate; the bottleneck is investigation time (clicking into each finding to read the reasoning). CLAUDE.md already has acceptable-pattern rules, and stakeholders rejected any approach that filters findings before developer review. Best change to address the investigation-time bottleneck?",a:"C",t:"Require Claude to include its reasoning and confidence assessment inline with each finding."},
+ {set:2,n:35,s:4,q:"Three Claude-powered analyses: quick PR style checks that block merging, weekly full-codebase security audits, and nightly test generation for modified modules. Batches API gives 50% savings but up to 24h. Which combination correctly matches each task to its API approach?",a:"B",t:"Use synchronous calls for PR style checks; use the Message Batches API for weekly security audits and nightly test generation."},
+ {set:2,n:36,s:4,q:"A comment/docstring review prompt says \"check that comments are accurate and up-to-date.\" It frequently flags acceptable patterns (TODO markers, plain descriptions) while missing comments describing behavior the code no longer implements. Change that addresses the root cause of this inconsistent analysis?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."},
+ {set:2,n:37,s:4,q:"Test-case suggestions for a PR adding course-completion tracking: Claude suggests 10 cases but developers report 6 duplicate scenarios already covered in the existing suite. What change would most effectively reduce duplicate suggestions?",a:"C",t:"Include the existing test file in the context so Claude can identify what scenarios are already covered."},
+ {set:2,n:38,s:4,q:"An iterative review lets Claude request related files (imports, base classes, tests) via tool calling, receive results, and continue its analysis. Evaluating batch processing to cut costs—what is the primary technical constraint for this workflow?",a:"A",t:"The asynchronous model prevents executing tools mid-request and returning results for Claude to continue analysis."},
+ {set:2,n:39,s:4,q:"A PR modifies 14 files; the single-pass review of all files together is inconsistent—detailed for some files, superficial for others, missing obvious bugs, and contradictory (flagging a pattern in one file while approving identical code elsewhere in the same PR). How should you restructure the review?",a:"C",t:"Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow."},
+ {set:2,n:40,s:4,q:"Two real-time workflows: a blocking pre-merge check that must complete before developers merge, and an overnight technical-debt report reviewed the next morning. Manager proposes switching both to the Message Batches API for 50% savings. How should you evaluate this?",a:"C",t:"Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks."},
+ {set:2,n:41,s:4,q:"Subtle issues (performance optimizations that break edge cases, cleanups that change behavior) only surface when a different team member reviews the PR; the generator's own reasoning shows it considered these cases but concluded its approach was correct. Approach that directly addresses the root cause of this self-review limitation?",a:"C",t:"Have a second, independent Claude Code instance review the changes without seeing the generator's reasoning."},
+ {set:2,n:42,s:4,q:"CI runs the Claude Code CLI in --print mode for reviews; findings are insightful but come as narrative paragraphs that must be manually copied into PR comments. You want to auto-post each finding as a separate inline PR comment (needs file path, line, severity, suggested fix). Most effective approach?",a:"D",t:"Use CLI flags --output-format json and --json-schema to enforce structured findings, then parse output to post inline comments via the GitHub API."},
+ {set:2,n:43,s:4,q:"False-positive rates vary by category (security/correctness 8%, performance 18%, style 52%, documentation 48%); developers are dismissing all findings because \"half are wrong,\" undermining the accurate categories. Approach that best restores trust while improving the system?",a:"D",t:"Temporarily disable high false-positive categories (style, naming, documentation) and run only high-precision categories while improving prompts."},
+ {set:2,n:44,s:4,q:"Reviews identify valid issues but aren't actionable (\"complex ticket allocation logic,\" \"potential null pointer\" without saying what to change); adding instructions like \"always include specific fix suggestions\" still yields inconsistent output. Prompting technique that most reliably produces consistently actionable feedback?",a:"D",t:"Add 3-4 few-shot examples showing the exact format you want: issue identified, code location, specific fix suggestion."},
+ {set:2,n:45,s:4,q:"A pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs waiting for interactive input. Correct approach to run Claude Code in an automated pipeline?",a:"A",t:"Add the -p flag: claude -p \"Analyze this pull request for security issues\"."},
+ {set:2,n:46,s:3,q:"On \"impact of AI on creative industries\" every subagent succeeds, but final reports cover only visual arts (missing music, writing, film); the coordinator's logs show it decomposed the topic into \"AI in digital art creation,\" \"AI in graphic design,\" and \"AI in photography.\" Most likely root cause?",a:"A",t:"The coordinator agent's task decomposition is too narrow, resulting in subagent assignments that don't cover all relevant domains of the topic."},
+ {set:2,n:47,s:3,q:"A web search subagent queries three source categories: academic databases returned 15 papers, industry reports returned \"0 results found,\" and patent databases returned \"Connection timeout.\" When designing error propagation to the coordinator, what approach enables the best recovery decisions?",a:"B",t:"Distinguish access failures (timeout) needing retry decisions from valid empty results (\"0 results\") representing successful queries."},
+ {set:2,n:48,s:3,q:"On a broad topic the web search agent and document analysis agent both investigate the same subtopics, doubling token usage with significant finding overlap and no proportional gain in breadth or depth. Most effective way to address this?",a:"A",t:"Have the coordinator explicitly partition the research space before delegation, assigning distinct subtopics or source types to each agent."},
+ {set:2,n:49,s:3,q:"The web search subagent returns 3 of 5 source categories (two timed out) while document analysis processed all provided docs; synthesis must produce a findings summary from this mixed-quality input. Most effective error-propagation strategy?",a:"B",t:"Structure the synthesis output with coverage annotations indicating which findings are well-supported versus which topic areas have gaps due to unavailable sources."},
+ {set:2,n:50,s:3,q:"The document analysis subagent encounters a corrupted PDF it cannot parse. When designing the system's error handling, what is the most effective way to handle this failure?",a:"D",t:"Return the error with context to the coordinator agent, letting it decide how to proceed."},
+ {set:2,n:51,s:3,q:"With ~75K tokens of aggregated results, the synthesis agent reliably cites the first 15K (web search headlines/snippets) and final 10K (document analysis conclusions) but omits critical findings in the middle 50K—even when they directly address the question. How should you restructure the aggregated input?",a:"C",t:"Place a key findings summary at the beginning of the aggregated input and organize detailed results with explicit section headers for easier navigation."},
+ {set:2,n:52,s:3,q:"A colleague suggests having the document analysis agent send output directly to the synthesis agent instead of routing through the coordinator. What is the main advantage of keeping the coordinator as the central hub for all subagent communication?",a:"C",t:"The coordinator can observe all interactions, handle errors consistently, and decide what information each subagent should receive."},
+ {set:2,n:53,s:3,q:"The document analysis subagent frequently fails on PDFs (corrupted sections, password protection, parser timeouts on large files); any exception immediately terminates the subagent and forces the coordinator to decide retry/skip/fail, causing excessive coordinator involvement in routine error handling. Most effective architectural improvement?",a:"A",t:"Have the subagent implement local recovery for transient failures and only propagate errors it cannot resolve to the coordinator, including what was attempted and any partial results obtained."},
+ {set:2,n:54,s:3,q:"The web search subagent times out while researching a complex topic; you must design how the failure flows back to the coordinator. Which error propagation approach best enables intelligent recovery?",a:"D",t:"Return structured error context to the coordinator including the failure type, the attempted query, any partial results, and potential alternative approaches."},
+ {set:2,n:55,s:3,q:"Combined outputs from the web search agent (85K tokens incl. page content) and document analysis agent (70K tokens incl. reasoning chains) total 155K, but the synthesis agent performs optimally under 50K tokens. Most effective solution?",a:"D",t:"Modify upstream agents to return structured data (key facts, citations, relevance scores) instead of verbose content and reasoning."},
+ {set:2,n:56,s:3,q:"The document analysis agent was given a general-purpose fetch_url tool to load documents from URLs, but production logs show it frequently fetches search-engine result pages to do ad-hoc web searches (which should route through the web search agent), causing inconsistent results. Most effective fix?",a:"D",t:"Replace fetch_url with a load_document tool that validates URLs point to document formats."},
+ {set:2,n:57,s:3,q:"The web search and document analysis agents have both completed and returned findings to the coordinator. What is the appropriate next step for producing an integrated research output?",a:"C",t:"The coordinator passes both sets of findings to the synthesis agent for unified integration."},
+ {set:2,n:58,s:3,q:"The document analysis agent finds two credible sources with directly conflicting statistics on a key metric (a government report says 40% growth, an industry analysis says 12%); both look legitimate and the discrepancy could materially affect conclusions. Most effective way for the agent to handle this?",a:"D",t:"Complete the document analysis with both figures included, explicitly annotate the conflict with source attribution, and let the coordinator decide how to reconcile before passing to synthesis."},
+ {set:2,n:59,s:3,q:"Requests to \"analyze the quarterly report I uploaded\" are routed to the web search agent 45% of the time instead of document analysis; the web search agent's analyze_content tool (\"analyzes content and extracts key information\") overlaps with the document agent's analyze_document tool. How should you address this misrouting?",a:"B",t:"Rename the web search tool to extract_web_results and update its description to \"processes and returns information retrieved from web searches and URLs.\""},
+ {set:2,n:60,s:3,q:"The synthesis agent often needs to verify claims; currently it returns control to the coordinator, which invokes the web search agent then re-invokes synthesis—adding 2-3 round trips and 40% latency. 85% of verifications are simple fact-checks (dates, names, statistics), 15% need deeper investigation. Most effective approach to reduce overhead while maintaining reliability?",a:"A",t:"Give the synthesis agent a scoped verify_fact tool for simple lookups, while complex verifications continue delegating to the web search agent through the coordinator."}
 ];
 const SCEN = {1:"Customer Support",2:"Claude Code",3:"Multi-Agent Research",4:"CI / Code Review"};
 
 const list=document.getElementById('list'), empty=document.getElementById('empty'),
       countEl=document.getElementById('count'), input=document.getElementById('q'),
-      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips');
-let scen=0;
+      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips'),
+      setchipsEl=document.getElementById('setchips');
+let scen=0, setFilter=0;
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function hl(s,terms){let h=esc(s);for(const t of terms){if(!t)continue;
@@ -143,27 +214,62 @@ function render(){
   const terms=raw.toLowerCase().split(/\s+/).filter(Boolean);
   clearBtn.style.display=raw?'block':'none';
   const rows=DATA.filter(d=>{
+    if(setFilter&&(d.set||1)!==setFilter)return false;
     if(scen&&d.s!==scen)return false;
     if(!terms.length)return true;
     const hay=(d.n+' '+d.q+' '+d.a+' '+d.t).toLowerCase();
     return terms.every(t=>hay.includes(t));
   });
-  countEl.textContent=rows.length+' of 60 question'+(rows.length===1?'':'s')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
+  countEl.textContent=rows.length+' of '+DATA.length+' question'+(rows.length===1?'':'s')+(setFilter?' · Set '+setFilter:'')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
   empty.style.display=rows.length?'none':'block';
   list.innerHTML=rows.map(d=>`
-    <div class="card">
-      <div class="meta"><span class="num">Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
+    <div class="card" id="q-${d.set||1}-${d.n}">
+      <div class="meta"><span class="num">S${d.set||1}·Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
       <div class="qtext">${hl(d.q,terms)}</div>
       <div class="answer"><span class="alabel">Answer <span class="pick">${d.a}</span></span> ${hl(d.t,terms)}</div>
     </div>`).join('');
 }
+
+setchipsEl.innerHTML=[[0,'All sets'],[1,'Set 1'],[2,'Set 2']]
+  .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-set="${v}">${l}</span>`).join('');
+setchipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
+  setFilter=+c.dataset.set;[...setchipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.set===setFilter));render()});
 
 chipsEl.innerHTML=[[0,'All'],[1,SCEN[1]],[2,SCEN[2]],[3,SCEN[3]],[4,SCEN[4]]]
   .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-s="${v}">${l}</span>`).join('');
 chipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
   scen=+c.dataset.s;[...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===scen));render()});
 
-input.addEventListener('input',render);
+// One-click topic search: click a chip to run a keyword search across both sets.
+const TOPICS=[
+  ['Escalation','escalate'],['Tool descriptions','tool descriptions'],['Tool selection','tool selection'],
+  ['Multi-concern','multi-concern'],['Composite tools','composite'],['stop_reason','stop_reason'],
+  ['Verifying identity','verified customer'],['Batches API','batch'],['context: fork','fork'],
+  ['Plan mode','plan mode'],['Skills','skill'],['CLAUDE.md','claude.md'],['MCP server','mcp'],
+  ['.claude/rules','rules'],['Few-shot examples','few-shot'],['Severity ratings','severity'],
+  ['False positives','false positive'],['Inline PR comments','inline'],['Headless / -p','pipeline'],
+  ['Coordinator','coordinator'],['Synthesis agent','synthesis'],['Task decomposition','decompos'],
+  ['Timeout / errors','timeout'],['Conflicting data','conflict'],['Lost in the middle','middle']
+];
+const topicsEl=document.getElementById('topics');
+topicsEl.innerHTML=TOPICS.map(([l,q])=>`<span class="topic" data-q="${q}">${l}</span>`).join('');
+topicsEl.addEventListener('click',e=>{
+  const c=e.target.closest('.topic');if(!c)return;
+  const q=c.dataset.q, already=input.value.trim().toLowerCase()===q.toLowerCase();
+  // reset set/scenario filters so a topic searches the whole bank
+  scen=0;setFilter=0;
+  [...chipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.s===0));
+  [...setchipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.set===0));
+  input.value=already?'':q;            // click again to toggle the topic off
+  [...topicsEl.children].forEach(x=>x.classList.toggle('active',x===c&&!already));
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+input.addEventListener('input',()=>{
+  [...topicsEl.children].forEach(x=>x.classList.remove('active'));
+  render();
+});
 clearBtn.addEventListener('click',()=>{input.value='';input.focus();render()});
 document.addEventListener('keydown',e=>{
   if(e.key==='/'&&document.activeElement!==input){e.preventDefault();input.focus()}
