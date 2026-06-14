@@ -13,7 +13,7 @@
   body{margin:0;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);color:var(--ink)}
   header{position:sticky;top:0;z-index:10;background:var(--bg);
-    padding:18px 16px 12px;border-bottom:1px solid var(--line)}
+    padding:12px 16px 9px;border-bottom:1px solid var(--line)}
   h1{margin:0 0 2px;font-size:19px}
   .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
   .searchwrap{position:relative}
@@ -50,24 +50,33 @@
   .topic{border:1px solid var(--line);background:var(--card);color:var(--ink);
     padding:5px 11px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none}
   .topic:hover,.topic.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
+  .bar .count{margin-top:0}
+  .filttoggle{border:1px solid var(--line);background:var(--card);color:var(--muted);
+    padding:5px 12px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap}
+  .filttoggle:hover{border-color:var(--accent);color:var(--ink)}
+  .filters{margin-top:10px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Claude Certified Architect – Foundations</h1>
-  <div class="sub">Practice exams · Set 1 (60 Q) + Set 2 (60 Q) · type a keyword to jump to the answer</div>
+  <h1>Claude Certified Architect – Foundations · 120 Q&A</h1>
   <div class="searchwrap">
     <input id="q" type="search" placeholder="Search questions &amp; answers… (e.g. escalate, batch, fork, stop_reason)" autocomplete="off" autofocus>
     <button id="clear" title="Clear">×</button>
   </div>
-  <div class="hint">Question and answer are both shown in full. Results filter as you type — press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear. Or click a <strong>topic</strong> below to jump straight to the relevant questions.</div>
-  <div class="chips" id="setchips"></div>
-  <div class="chips" id="chips"></div>
-  <div class="topicwrap">
-    <div class="topiclabel">Find by topic — one click</div>
-    <div class="chips" id="topics"></div>
+  <div class="bar">
+    <span class="count" id="count"></span>
+    <button id="filttoggle" class="filttoggle" aria-expanded="false" aria-controls="filters">☰ Filters &amp; topics</button>
   </div>
-  <div class="count" id="count"></div>
+  <div class="filters" id="filters" hidden>
+    <div class="chips" id="setchips"></div>
+    <div class="chips" id="chips"></div>
+    <div class="topicwrap">
+      <div class="topiclabel">Find by topic — one click</div>
+      <div class="chips" id="topics"></div>
+    </div>
+  </div>
 </header>
 <main>
   <div id="list"></div>
@@ -264,6 +273,13 @@ topicsEl.addEventListener('click',e=>{
   [...topicsEl.children].forEach(x=>x.classList.toggle('active',x===c&&!already));
   render();
   window.scrollTo({top:0,behavior:'smooth'});
+});
+
+const filttoggle=document.getElementById('filttoggle'), filters=document.getElementById('filters');
+filttoggle.addEventListener('click',()=>{
+  const open=filters.hasAttribute('hidden');
+  if(open){filters.removeAttribute('hidden');filttoggle.setAttribute('aria-expanded','true');filttoggle.textContent='✕ Filters & topics';}
+  else{filters.setAttribute('hidden','');filttoggle.setAttribute('aria-expanded','false');filttoggle.textContent='☰ Filters & topics';}
 });
 
 input.addEventListener('input',()=>{
