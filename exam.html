@@ -50,12 +50,13 @@
 <body>
 <header>
   <h1>Claude Certified Architect – Foundations</h1>
-  <div class="sub">60-question practice exam · type a keyword to jump to the answer</div>
+  <div class="sub">Practice exams · Set 1 (60 Q) + Set 2 · type a keyword to jump to the answer</div>
   <div class="searchwrap">
     <input id="q" type="search" placeholder="Search questions &amp; answers… (e.g. escalate, batch, fork, stop_reason)" autocomplete="off" autofocus>
     <button id="clear" title="Clear">×</button>
   </div>
   <div class="hint">Question and answer are both shown in full. Results filter as you type — press <kbd>/</kbd> to focus search, <kbd>Esc</kbd> to clear.</div>
+  <div class="chips" id="setchips"></div>
   <div class="chips" id="chips"></div>
   <div class="count" id="count"></div>
 </header>
@@ -125,14 +126,18 @@ const DATA = [
  {n:57,s:4,q:"A single-pass review of 14 files produces inconsistent, contradictory results. How should you restructure the review?",a:"A",t:"Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow."},
  {n:58,s:4,q:"Reduce API costs: a blocking pre-merge check plus an overnight technical-debt report. Manager proposes switching both to the Batches API. How to evaluate?",a:"B",t:"Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks."},
  {n:59,s:4,q:"An iterative review uses tool calling (requesting related files mid-analysis). Evaluating batch processing—what is the primary technical constraint?",a:"A",t:"The asynchronous model prevents executing tools mid-request and returning results for Claude to continue analysis."},
- {n:60,s:4,q:"Comment/docstring review over-flags acceptable patterns (TODO markers, plain descriptions) and misses comments describing behavior the code no longer implements. Change addressing the root cause?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."}
+ {n:60,s:4,q:"Comment/docstring review over-flags acceptable patterns (TODO markers, plain descriptions) and misses comments describing behavior the code no longer implements. Change addressing the root cause?",a:"A",t:"Specify explicit criteria: flag comments only when their claimed behavior contradicts actual code behavior."},
+ {set:2,n:1,s:1,q:"Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. Most effective first step to improve tool selection reliability?",a:"C",t:"Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools."},
+ {set:2,n:2,s:1,q:"Progressive summarization at 70% capacity condenses customer-stated amounts (\"the 15% discount I mentioned\") stated 20+ turns ago into vague summaries (\"discussed promotional pricing\"), and the agent responds with incorrect values. Most effective fix?",a:"B",t:"Extract transactional facts (amounts, dates, order numbers) into a persistent \"case facts\" block included in each prompt, outside the summarized history."},
+ {set:2,n:3,s:1,q:"The agent misinterprets MCP tool data: Unix timestamps from get_customer, ISO 8601 dates from lookup_order, and numeric status codes (1=pending, 2=shipped); some tools are third-party MCP servers you cannot modify. Most maintainable approach to normalize data formats?",a:"B",t:"Use a PostToolUse hook to intercept tool results and apply formatting transformations before agent processing."}
 ];
 const SCEN = {1:"Customer Support",2:"Claude Code",3:"Multi-Agent Research",4:"CI / Code Review"};
 
 const list=document.getElementById('list'), empty=document.getElementById('empty'),
       countEl=document.getElementById('count'), input=document.getElementById('q'),
-      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips');
-let scen=0;
+      clearBtn=document.getElementById('clear'), chipsEl=document.getElementById('chips'),
+      setchipsEl=document.getElementById('setchips');
+let scen=0, setFilter=0;
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function hl(s,terms){let h=esc(s);for(const t of terms){if(!t)continue;
@@ -143,20 +148,26 @@ function render(){
   const terms=raw.toLowerCase().split(/\s+/).filter(Boolean);
   clearBtn.style.display=raw?'block':'none';
   const rows=DATA.filter(d=>{
+    if(setFilter&&(d.set||1)!==setFilter)return false;
     if(scen&&d.s!==scen)return false;
     if(!terms.length)return true;
     const hay=(d.n+' '+d.q+' '+d.a+' '+d.t).toLowerCase();
     return terms.every(t=>hay.includes(t));
   });
-  countEl.textContent=rows.length+' of 60 question'+(rows.length===1?'':'s')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
+  countEl.textContent=rows.length+' of '+DATA.length+' question'+(rows.length===1?'':'s')+(setFilter?' · Set '+setFilter:'')+(scen?' · '+SCEN[scen]:'')+(raw?' · "'+raw+'"':'');
   empty.style.display=rows.length?'none':'block';
   list.innerHTML=rows.map(d=>`
     <div class="card">
-      <div class="meta"><span class="num">Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
+      <div class="meta"><span class="num">S${d.set||1}·Q${d.n}</span><span class="tag">${SCEN[d.s]}</span></div>
       <div class="qtext">${hl(d.q,terms)}</div>
       <div class="answer"><span class="alabel">Answer <span class="pick">${d.a}</span></span> ${hl(d.t,terms)}</div>
     </div>`).join('');
 }
+
+setchipsEl.innerHTML=[[0,'All sets'],[1,'Set 1'],[2,'Set 2']]
+  .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-set="${v}">${l}</span>`).join('');
+setchipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
+  setFilter=+c.dataset.set;[...setchipsEl.children].forEach(x=>x.classList.toggle('active',+x.dataset.set===setFilter));render()});
 
 chipsEl.innerHTML=[[0,'All'],[1,SCEN[1]],[2,SCEN[2]],[3,SCEN[3]],[4,SCEN[4]]]
   .map(([v,l])=>`<span class="chip${v===0?' active':''}" data-s="${v}">${l}</span>`).join('');
